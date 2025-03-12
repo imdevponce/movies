@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../index.css";
 import FilterBy from "../components/FilterBy";
+import CardMovie from "../components/CardMovie";
 import { useNavigate } from "react-router-dom";
 
 interface Movie {
@@ -12,23 +13,7 @@ interface Movie {
   runtime: string;
   genre: string;
 }
-
-interface Principal {
-  id: number;
-  category: string;
-  characters: string[];
-  tconst: string;
-  nconst: string;
-}
-
-interface Name {
-  nconst: string;
-  name: string;
-  birth_year: string;
-  death_year: string | null;
-  primary_professions: string;
-}
-
+const API_URL = import.meta.env.VITE_API_URL;
 const Home: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
@@ -38,8 +23,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     if (itemsToShow === 20) {
-      // Fetch movies
-      axios.get("http://127.0.0.1:8000/api/movies/").then((response) => {
+      axios.get(API_URL + "/api/movies/").then((response) => {
         setMovies(response.data.slice(0, itemsToShow));
         setAllMovies(response.data);
       });
@@ -48,13 +32,10 @@ const Home: React.FC = () => {
     }
   }, [itemsToShow]);
 
-  // Handle sorting
-  function sortMovies(movies: Movie[], criterion: string): Movie[] {
+  const sortMovies = (movies: Movie[], criterion: string) => {
     const sortedMovies = [...movies];
-
     return sortedMovies.sort((a, b) => {
       const getValue = (value: string | null | undefined) => value || "";
-
       switch (criterion) {
         case "genre":
           const genreA = getValue(a.genre);
@@ -65,20 +46,17 @@ const Home: React.FC = () => {
             : genreB === ""
             ? -1
             : genreA.localeCompare(genreB);
-
         case "title":
           return (a.title || "").localeCompare(b.title || "");
-
         case "year":
           const yearA = a.year ? Number(a.year) : Infinity;
           const yearB = b.year ? Number(b.year) : Infinity;
           return yearA - yearB;
-
         default:
           return 0;
       }
     });
-  }
+  };
 
   const onHandleChangeFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
     switch (e.target.value) {
@@ -113,44 +91,52 @@ const Home: React.FC = () => {
       setItemsToShow((prev) => prev + 20);
     }, 1000);
   };
-  const formatTitle = (title: string): string => {
-    return title.toLowerCase().replace(/\s+/g, "-");
-  };
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">🎬 Movie Explorer</h1>
+    <div className="p-6">
+      <h1
+        className="text-3xl font-bold mb-6 text-center"
+        id="page-title"
+        tabIndex={0}
+      >
+        🎬 Movie Explorer
+      </h1>
+
       <FilterBy
         options={["year", "title", "genre"]}
         onHandleChange={onHandleChangeFilter}
       />
+
       <div
-        className="grid grid-cols-2 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 overflow-y-auto h-[500px]"
         onScroll={handleScroll}
-        style={{ overflowY: "auto", height: "500px" }}
       >
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Movies</h2>
-          <ul className="list-disc pl-6">
+        <div className="mb-6" aria-labelledby="movie-section">
+          <h2
+            className="text-xl font-semibold mb-4"
+            id="movie-section"
+            tabIndex={0}
+          >
+            Movies
+          </h2>
+          <div className="grid gap-6">
             {movies.map((movie) => (
-              <li
+              <CardMovie
                 key={movie.tconst}
-                className="cursor-pointer text-blue-500"
-                onClick={() =>
-                  navigate(
-                    `/movies/${formatTitle(movie.title)}/principals/${
-                      movie.tconst
-                    }`
-                  )
+                movie={movie}
+                onHandleClick={() =>
+                  navigate(`/movies/${movie.title}/principals/${movie.tconst}`)
                 }
-              >
-                {movie.title} ({movie.year}) - {movie.genre}
-              </li>
+              />
             ))}
-          </ul>
+          </div>
         </div>
       </div>
-
-      {loading ? <div>Loading...</div> : null}
+      {loading ? (
+        <p className="text-center mt-4" aria-live="polite" aria-atomic="true">
+          Loading...
+        </p>
+      ) : null}
     </div>
   );
 };

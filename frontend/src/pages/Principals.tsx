@@ -17,6 +17,7 @@ interface Name {
   death_year: string | null;
   primary_professions: string;
 }
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Principals: React.FC = () => {
   const { principalId, movieTitle } = useParams();
@@ -39,45 +40,59 @@ const Principals: React.FC = () => {
   };
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/principals/").then((response) => {
+    axios.get(API_URL + "/api/principals/").then((response) => {
       const filteredPrincipals = response.data.filter(
         (principal: Principal) => principal.tconst === principalId
       );
       setPrincipals(filteredPrincipals);
     });
 
-    axios.get("http://127.0.0.1:8000/api/names/").then((response) => {
+    axios.get(API_URL + "/api/names/").then((response) => {
       setNames(response.data);
     });
-  }, []);
+  }, [principalId]);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <h2
+        className="text-2xl font-bold text-gray-800 mb-6"
+        id="movie-title"
+        tabIndex={0}
+      >
         Principals for {formatRegularTitle(movieTitle)}
       </h2>
 
       {principals.length === 0 ? (
-        <p className="text-gray-500">No data available.</p>
+        <p className="text-gray-500" aria-live="polite" role="status">
+          No data available.
+        </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+          aria-labelledby="movie-title"
+        >
           {principals.map((principal) => (
             <div
               key={principal.id}
               className="bg-white shadow-md rounded-lg p-4 border border-gray-200"
+              aria-labelledby={`principal-${principal.id}`}
             >
-              <h3 className="text-lg font-semibold text-gray-700">
+              <h3
+                id={`principal-${principal.id}`}
+                className="text-lg font-semibold text-gray-700"
+                tabIndex={0}
+              >
                 {getActorName(principal.nconst)}
               </h3>
               <p className="text-gray-600">
                 <span className="font-medium">Role:</span> {principal.category}
               </p>
-              {principal.characters && principal.characters.length > 0 && (
+              {principal.characters && principal.characters.length > 0 ? (
                 <p className="text-gray-500">
                   <span className="font-medium">Characters:</span>{" "}
                   {principal.characters.join(", ")}
                 </p>
-              )}
+              ) : null}
             </div>
           ))}
         </div>

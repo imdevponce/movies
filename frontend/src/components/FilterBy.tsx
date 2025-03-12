@@ -16,14 +16,20 @@ const FilterBy = ({ options, onHandleChange }: Props) => {
         id="movies-filter"
         className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
         onChange={onHandleChange}
+        aria-label="Select a filter for movies"
+        aria-describedby="filter-description"
+        required
       >
-        <option value=""></option>
+        <option value="">Choose a filter</option>
         {options.map((option) => (
           <option key={option} value={option}>
             {option?.toLowerCase()}
           </option>
         ))}
       </select>
+      <p id="filter-description" className="text-xs text-gray-500">
+        Select a category to filter the movie list (e.g., Year, Title, Genre).
+      </p>
     </div>
   );
 };
