@@ -105,6 +105,9 @@ const Home: React.FC = () => {
       setItemsToShow((prev) => prev + 20);
     }, 1000);
   };
+  const formatTitle = (title: string) => {
+    return title.toLowerCase().replace(/\s+/g, "-");
+  };
   if (loading) {
     return <p>Loading...</p>;
   }
@@ -141,7 +144,11 @@ const Home: React.FC = () => {
                 key={movie.tconst}
                 movie={movie}
                 onHandleClick={() =>
-                  navigate(`/movies/${movie.title}/principals/${movie.tconst}`)
+                  navigate(
+                    `/movies/${formatTitle(movie.title)}/principals/${
+                      movie.tconst
+                    }`
+                  )
                 }
               />
             ))}
