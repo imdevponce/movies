@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../index.css";
 import FilterBy from "../components/FilterBy";
+
 interface Movie {
   tconst: string;
   title: string;
@@ -29,20 +30,31 @@ interface Name {
 
 const Home: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [principals, setPrincipals] = useState<Principal[]>([]);
   const [names, setNames] = useState<Name[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
-  useEffect(() => {
-    // Fetch movies
-    axios.get("http://127.0.0.1:8000/api/movies/").then((response) => {
-      setMovies(response.data);
-    });
-    // Fetch names
-    axios.get("http://127.0.0.1:8000/api/names/").then((response) => {
-      setNames(response.data);
-    });
-  }, []);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [itemsToShow, setItemsToShow] = useState<number>(20);
 
+  useEffect(() => {
+    if (itemsToShow === 20) {
+      // Fetch movies
+      axios.get("http://127.0.0.1:8000/api/movies/").then((response) => {
+        setMovies(response.data.slice(0, itemsToShow));
+        setAllMovies(response.data);
+      });
+      // Fetch names
+      axios.get("http://127.0.0.1:8000/api/names/").then((response) => {
+        setNames(response.data);
+      });
+    } else {
+      console.log("updated");
+      setMovies(allMovies.slice(0, itemsToShow));
+    }
+  }, [itemsToShow]);
+  console.log("allMovies", allMovies);
+  console.log("movies", movies);
   useEffect(() => {
     if (selectedMovie) {
       // Fetch principals for the selected movie
@@ -59,6 +71,8 @@ const Home: React.FC = () => {
     const actor = names.find((name) => name.nconst === nconst);
     return actor ? actor.name : "Unknown Actor";
   };
+
+  // Handle sorting
   function sortMovies(movies: Movie[], criterion: string): Movie[] {
     const sortedMovies = [...movies];
 
@@ -94,14 +108,34 @@ const Home: React.FC = () => {
     switch (e.target.value) {
       case "year":
         setMovies(sortMovies(movies, "year"));
+        setAllMovies(sortMovies(allMovies, "year"));
         break;
       case "title":
         setMovies(sortMovies(movies, "title"));
+        setAllMovies(sortMovies(allMovies, "title"));
         break;
       case "genre":
         setMovies(sortMovies(movies, "genre"));
+        setAllMovies(sortMovies(allMovies, "genre"));
         break;
     }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const bottom =
+      e.currentTarget.scrollHeight ===
+      e.currentTarget.scrollTop + e.currentTarget.clientHeight;
+    if (bottom && !loading && movies.length < allMovies.length) {
+      loadMoreItems();
+    }
+  };
+
+  const loadMoreItems = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setItemsToShow((prev) => prev + 20);
+    }, 1000);
   };
 
   return (
@@ -111,7 +145,11 @@ const Home: React.FC = () => {
         options={["year", "title", "genre"]}
         onHandleChange={onHandleChangeFilter}
       />
-      <div className="grid grid-cols-2 gap-4">
+      <div
+        className="grid grid-cols-2 gap-4"
+        onScroll={handleScroll}
+        style={{ overflowY: "auto", height: "500px" }}
+      >
         {/* Movie List */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold">Movies</h2>
@@ -149,6 +187,8 @@ const Home: React.FC = () => {
           </div>
         )}
       </div>
+
+      {loading ? <div>Loading...</div> : null}
     </div>
   );
 };
