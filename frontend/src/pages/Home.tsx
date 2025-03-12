@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../index.css";
-
+import FilterBy from "../components/FilterBy";
 interface Movie {
   tconst: string;
   title: string;
@@ -32,7 +32,6 @@ const Home: React.FC = () => {
   const [principals, setPrincipals] = useState<Principal[]>([]);
   const [names, setNames] = useState<Name[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
-
   useEffect(() => {
     // Fetch movies
     axios.get("http://127.0.0.1:8000/api/movies/").then((response) => {
@@ -60,11 +59,58 @@ const Home: React.FC = () => {
     const actor = names.find((name) => name.nconst === nconst);
     return actor ? actor.name : "Unknown Actor";
   };
+  function sortMovies(movies: Movie[], criterion: string): Movie[] {
+    const sortedMovies = [...movies];
+
+    return sortedMovies.sort((a, b) => {
+      const getValue = (value: string | null | undefined) => value || "";
+
+      switch (criterion) {
+        case "genre":
+          const genreA = getValue(a.genre);
+          const genreB = getValue(b.genre);
+          if (genreA === "" && genreB === "") return 0;
+          return genreA === ""
+            ? 1
+            : genreB === ""
+            ? -1
+            : genreA.localeCompare(genreB);
+
+        case "title":
+          return (a.title || "").localeCompare(b.title || "");
+
+        case "year":
+          const yearA = a.year ? Number(a.year) : Infinity;
+          const yearB = b.year ? Number(b.year) : Infinity;
+          return yearA - yearB;
+
+        default:
+          return 0;
+      }
+    });
+  }
+
+  const onHandleChangeFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    switch (e.target.value) {
+      case "year":
+        setMovies(sortMovies(movies, "year"));
+        break;
+      case "title":
+        setMovies(sortMovies(movies, "title"));
+        break;
+      case "genre":
+        setMovies(sortMovies(movies, "genre"));
+        break;
+    }
+  };
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">🎬 Movie Explorer</h1>
-
+      <FilterBy
+        options={["year", "title", "genre"]}
+        onHandleChange={onHandleChangeFilter}
+      />
       <div className="grid grid-cols-2 gap-4">
         {/* Movie List */}
         <div className="mb-6">
