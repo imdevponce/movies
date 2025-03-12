@@ -4,7 +4,7 @@ import "../index.css";
 import FilterBy from "../components/FilterBy";
 import CardMovie from "../components/CardMovie";
 import { useNavigate } from "react-router-dom";
-
+import { API_URL, encryptData, decryptData } from "../utils";
 interface Movie {
   tconst: string;
   title: string;
@@ -13,22 +13,36 @@ interface Movie {
   runtime: string;
   genre: string;
 }
-const API_URL = import.meta.env.VITE_API_URL;
+
 const Home: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingData, setLoadingData] = useState<boolean>(true);
   const [itemsToShow, setItemsToShow] = useState<number>(20);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (itemsToShow === 20) {
-      axios.get(API_URL + "/api/movies/").then((response) => {
-        setMovies(response.data.slice(0, itemsToShow));
-        setAllMovies(response.data);
-      });
+    const cachedMovies = sessionStorage.getItem("movies");
+    if (cachedMovies) {
+      const decryptedMovies = decryptData(cachedMovies);
+      setMovies(decryptedMovies.slice(0, itemsToShow));
+      setAllMovies(decryptedMovies);
+      setLoading(false);
     } else {
-      setMovies(allMovies.slice(0, itemsToShow));
+      axios
+        .get(API_URL + "/api/movies/")
+        .then((response) => {
+          const fetchedMovies = response.data;
+          setMovies(fetchedMovies.slice(0, itemsToShow));
+          setAllMovies(fetchedMovies);
+          const encryptedMovies = encryptData(fetchedMovies);
+          sessionStorage.setItem("movies", encryptedMovies);
+          setLoading(false);
+        })
+        .catch(() => {
+          setLoading(false);
+        });
     }
   }, [itemsToShow]);
 
@@ -85,13 +99,15 @@ const Home: React.FC = () => {
   };
 
   const loadMoreItems = () => {
-    setLoading(true);
+    setLoadingData(true);
     setTimeout(() => {
-      setLoading(false);
+      setLoadingData(false);
       setItemsToShow((prev) => prev + 20);
     }, 1000);
   };
-
+  if (loading) {
+    return <p>Loading...</p>;
+  }
   return (
     <div className="p-6">
       <h1
@@ -132,7 +148,7 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
-      {loading ? (
+      {loadingData ? (
         <p className="text-center mt-4" aria-live="polite" aria-atomic="true">
           Loading...
         </p>

@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
-
+import { API_URL, decryptData, encryptData } from "../utils";
+import PrincipalCard from "../components/PrincipalCard";
 interface Principal {
   id: number;
   category: string;
@@ -17,13 +18,12 @@ interface Name {
   death_year: string | null;
   primary_professions: string;
 }
-const API_URL = import.meta.env.VITE_API_URL;
 
 const Principals: React.FC = () => {
   const { principalId, movieTitle } = useParams();
   const [principals, setPrincipals] = useState<Principal[]>([]);
   const [names, setNames] = useState<Name[]>([]);
-
+  const [loading, setLoading] = useState(true);
   const formatRegularTitle = (slug: string | undefined | null): string => {
     if (!slug) {
       return "Unknown Movie";
@@ -40,18 +40,51 @@ const Principals: React.FC = () => {
   };
 
   useEffect(() => {
-    axios.get(API_URL + "/api/principals/").then((response) => {
-      const filteredPrincipals = response.data.filter(
-        (principal: Principal) => principal.tconst === principalId
+    const cachedPrincipals = sessionStorage.getItem("principals");
+    const cachedNames = sessionStorage.getItem("names");
+
+    if (cachedPrincipals && cachedNames) {
+      const decryptedPrincipals = decryptData(cachedPrincipals);
+      const decryptedNames = decryptData(cachedNames);
+      setPrincipals(
+        decryptedPrincipals.filter(
+          (principal: Principal) => principal.tconst === principalId
+        )
       );
-      setPrincipals(filteredPrincipals);
-    });
+      setNames(decryptedNames);
+      setLoading(false);
+    } else {
+      axios
+        .get(API_URL + "/api/principals/")
+        .then((response) => {
+          const filteredPrincipals = response.data.filter(
+            (principal: Principal) => principal.tconst === principalId
+          );
+          setPrincipals(filteredPrincipals);
+          const encryptedPrincipals = encryptData(response.data);
+          sessionStorage.setItem("principals", encryptedPrincipals);
+          setLoading(false);
+        })
+        .catch(() => {
+          setLoading(false);
+        });
 
-    axios.get(API_URL + "/api/names/").then((response) => {
-      setNames(response.data);
-    });
+      axios
+        .get(API_URL + "/api/names/")
+        .then((response) => {
+          setNames(response.data);
+          const encryptedNames = encryptData(response.data);
+          sessionStorage.setItem("names", encryptedNames);
+          setLoading(false);
+        })
+        .catch((error) => {
+          throw new Error(error);
+        });
+    }
   }, [principalId]);
-
+  if (loading) {
+    return <p>Loading...</p>;
+  }
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h2
@@ -72,28 +105,11 @@ const Principals: React.FC = () => {
           aria-labelledby="movie-title"
         >
           {principals.map((principal) => (
-            <div
+            <PrincipalCard
               key={principal.id}
-              className="bg-white shadow-md rounded-lg p-4 border border-gray-200"
-              aria-labelledby={`principal-${principal.id}`}
-            >
-              <h3
-                id={`principal-${principal.id}`}
-                className="text-lg font-semibold text-gray-700"
-                tabIndex={0}
-              >
-                {getActorName(principal.nconst)}
-              </h3>
-              <p className="text-gray-600">
-                <span className="font-medium">Role:</span> {principal.category}
-              </p>
-              {principal.characters && principal.characters.length > 0 ? (
-                <p className="text-gray-500">
-                  <span className="font-medium">Characters:</span>{" "}
-                  {principal.characters.join(", ")}
-                </p>
-              ) : null}
-            </div>
+              principal={principal}
+              actorName={getActorName(principal.nconst)}
+            />
           ))}
         </div>
       )}
