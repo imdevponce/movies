@@ -39,4 +39,7 @@
 
 - Use [`npm`](https://www.npmjs.com/) to install dependencies
   - We recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage your Node versions and we've included an `.nvmrc` for you for the version used on this project
-- `npm run dev` - this will run the front end server and watch for changes for Tailwind as
+- `npm run dev` - this will run the front end server
+
+- `npm run test` - this will run the all test
+- `npm run test:cov` - this will run the all test and coverage
