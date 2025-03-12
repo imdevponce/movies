@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../index.css";
 import FilterBy from "../components/FilterBy";
+import { useNavigate } from "react-router-dom";
 
 interface Movie {
   tconst: string;
@@ -31,11 +32,9 @@ interface Name {
 const Home: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
-  const [principals, setPrincipals] = useState<Principal[]>([]);
-  const [names, setNames] = useState<Name[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [itemsToShow, setItemsToShow] = useState<number>(20);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (itemsToShow === 20) {
@@ -44,33 +43,10 @@ const Home: React.FC = () => {
         setMovies(response.data.slice(0, itemsToShow));
         setAllMovies(response.data);
       });
-      // Fetch names
-      axios.get("http://127.0.0.1:8000/api/names/").then((response) => {
-        setNames(response.data);
-      });
     } else {
-      console.log("updated");
       setMovies(allMovies.slice(0, itemsToShow));
     }
   }, [itemsToShow]);
-  console.log("allMovies", allMovies);
-  console.log("movies", movies);
-  useEffect(() => {
-    if (selectedMovie) {
-      // Fetch principals for the selected movie
-      axios.get("http://127.0.0.1:8000/api/principals/").then((response) => {
-        const filteredPrincipals = response.data.filter(
-          (principal: Principal) => principal.tconst === selectedMovie
-        );
-        setPrincipals(filteredPrincipals);
-      });
-    }
-  }, [selectedMovie]);
-
-  const getActorName = (nconst: string) => {
-    const actor = names.find((name) => name.nconst === nconst);
-    return actor ? actor.name : "Unknown Actor";
-  };
 
   // Handle sorting
   function sortMovies(movies: Movie[], criterion: string): Movie[] {
@@ -137,7 +113,9 @@ const Home: React.FC = () => {
       setItemsToShow((prev) => prev + 20);
     }, 1000);
   };
-
+  const formatTitle = (title: string): string => {
+    return title.toLowerCase().replace(/\s+/g, "-");
+  };
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">🎬 Movie Explorer</h1>
@@ -150,7 +128,6 @@ const Home: React.FC = () => {
         onScroll={handleScroll}
         style={{ overflowY: "auto", height: "500px" }}
       >
-        {/* Movie List */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold">Movies</h2>
           <ul className="list-disc pl-6">
@@ -158,34 +135,19 @@ const Home: React.FC = () => {
               <li
                 key={movie.tconst}
                 className="cursor-pointer text-blue-500"
-                onClick={() => setSelectedMovie(movie.tconst)}
+                onClick={() =>
+                  navigate(
+                    `/movies/${formatTitle(movie.title)}/principals/${
+                      movie.tconst
+                    }`
+                  )
+                }
               >
                 {movie.title} ({movie.year}) - {movie.genre}
               </li>
             ))}
           </ul>
         </div>
-
-        {/* Principals and Actors */}
-        {selectedMovie && (
-          <div>
-            <h2 className="text-lg font-semibold">
-              Principals for{" "}
-              {movies.find((m) => m.tconst === selectedMovie)?.title}
-            </h2>
-            <ul className="list-disc pl-6">
-              {principals.map((principal) => (
-                <li key={principal.id}>
-                  <strong>{getActorName(principal.nconst)}</strong> -{" "}
-                  {principal.category}
-                  {principal.characters && (
-                    <span> as {principal.characters.join(", ")}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
 
       {loading ? <div>Loading...</div> : null}
