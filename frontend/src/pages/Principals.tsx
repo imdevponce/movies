@@ -77,8 +77,8 @@ const Principals: React.FC = () => {
           sessionStorage.setItem("names", encryptedNames);
           setLoading(false);
         })
-        .catch((error) => {
-          throw new Error(error);
+        .catch(() => {
+          setLoading(false);
         });
     }
   }, [principalId]);
